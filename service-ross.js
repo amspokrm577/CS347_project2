@@ -24,27 +24,44 @@ connection.connect((error) => {
   }
 });
 
-connection.end();
+/**
+ * 
+const selectQuery = 'SELECT * FROM memory';
+connection.query(selectQuery, (error, rows) => {
+  if (error) {
+    console.error(error);
+  } else {
+    console.log(rows);
+  }
+});
+ */
 
 
-let custID = 0;
-let petID = 0;
 
-const Customers = {
-  [custNextID]: {
-    id: custID++,
-    uName: custID - 2,
-    sName: custID - 1,
-  },
-};
+// change these to be the last pk in the rows
 
-const Pets = {
-  [petsNextID]: {
-    id: petID++,
-    followee: petID - 2,
-    follower: petID - 1,
-  },
-};
+let custID = 0; 
+
+// const memories;
+// const query = 'SELECT * FROM Pets ORDER BY PetID DESC LIMIT 1;';
+//   connection.query(query, (error, rows) => {
+//       if (error) {
+//         response.status(500);
+//         response.json({
+//           ok: false,
+//           results: error.message,
+//         });
+//       } else {
+//         memories = rows.map(rowToMemory);
+//         response.status(204);
+//         response.json({
+//           ok: true,
+//           results: memories,
+//         });
+//       }
+//     });
+
+// console.log(memories);
 
 
 service.listen(port, () => {
@@ -54,75 +71,176 @@ service.listen(port, () => {
 // POST /humans that accepts a JSON body containing a new human’s username and
 // screen name. It returns a JSON structure reporting the ID assigned to the new
 // human.
-service.post("/pet", (req, resp) => {
-    // implement the Pets data structure above ^^^
-    // return with a status of 204 if the query is 
-    // successfull
-    const { username, screenname } = req.body;
-   humans[humanNextId] = {
-     id: humanNextId,
-     username: username,
-     screenname: screenname,
-   };
-   resp.json({
-     ok: true,
-     result: humans[humanNextId++],
-   });
-});
+// This will only add pets of the type Dog.
+// service.post("/pet/:name/:breed:", (req, resp) => {
+//     // implement the Pets data structure above ^^^
+//     // return with a status of 204 if the query is 
+//     // successfull
 
-// GET /humans/:id that returns as JSON an object with the human’s screen name
-// and username.
-service.get("", (req, resp) => {
-  // resp.json(humans[req.params.id]);
-});
+//     const parameters = [
+//        parseInt(request.params.price),
+       
+//   ];
+//     const query = 'INSERT INTO Pet(PetID, species, pet_name, isCut, pet_color, adoption_fee, isAvailable)' +
+//     'VALUES (?, ?, ?, ?, ?, ?)';
+//     connection.query(query, parameters, (error, rows) => {
+//       if (error) {
+//         response.status(500);
+//         response.json({
+//           ok: false,
+//           results: error.message,
+//         });
+//       } else {
+//         const memories = rows.map(rowToMemory);
+//         response.status(204).json({
+//           ok: true,
+//           results: rows.map(rowToMemory),
+//         });
+//       }
+//     });
+// });
 
-// POST /follow/:followeeId/:followerId that adds a new following relationship to
+
+
+// POST /customer that adds a new customer to
 // the database. It returns nothing but gives back status code 204, which means
 // the operation silently succeeded.
-service.post("/customer", (req, resp) => {
+// This could be activated if a user tries to buy a pet
+// and then is forced to make an account
+// (could be a modal popup window)
+
+function petResponse(row) {
+  return {
+    id: row.PetID,
+    species: row.SPECIES,
+    price: row.adoption_fee,
+    neutered_spayed: row.isCut,
+    entry: row.entry,
+  };
+}
+
+function consResponse(row){
+  return {
+    id: row.CustID,
+    first_name: row.fname,
+    last_name: row.lname,
+    balance: row.balance,
+  };
+}
+
+service.post("/customer", (request, response) => {
   // implement the Pets data structure above ^^^
   // return with a status of 204 if the query is 
   // successfull
- const { username, screenname } = req.body;
- Customers[custNextID] = {
-   id: humanNextId,
-   uName: username,
-   sName: screenname,
- };
- resp.json({
-   ok: true,
-   result: humans[humanNextId++],
- });
+ const query = 'INSERT INTO Customer(CustID, fname, lname, cus_address, phone_num, email, balance)'+ // This balance will
+ 'VALUES (' + custID + ', "Randy", "Sanchez", "1732 Stroke Ln.", 17036463216, "randSanch@gmail.com", 0),'; // Inc. by the adoption fee              
+ custID++;
+ connection.query(query, parameters, (error, rows) => {
+  if (error) {
+    response.status(500);
+    response.json({
+      ok: false,
+      results: error.message,
+    });
+  } else {
+    const memories = rows.map(consResponse);
+    console.log(memories);
+    response.status(204).json({
+      ok: true,
+      results: memories,
+    });
+  }
+});
 });
 
 // GET /follow/:followee that returns as JSON an array of all of the
 // followers of the human with username :followee .
-service.get("", (req, resp, next) => {
-  
-  resp.status(204).json({
-    ok: true,
+
+// This could be done when a customer requests a 
+// certain price range. This returns all pet rows
+//  that are less than or equal to this range
+
+service.get('/pet/:price', (request, response) => {
+  const parameters = [
+    parseInt(request.params.price),
+  ];
+  const query = 'SELECT * FROM Pets WHERE isAvailable = 1 AND ADOPTION_FEE <= ? ORDER BY ADOPTION_FEE ASC';
+  connection.query(query, parameters, (error, rows) => {
+    if (error) {
+      response.status(500);
+      response.json({
+        ok: false,
+        results: error.message,
+      });
+    } else {
+      const memories = rows.map(petResponse);
+      console.log(memories);
+      response.status(204).json({
+        ok: true,
+        results: memories,
+      });
+    }
   });
 });
 
-// DELETE /follow/:followeeId/:followerId that removes a following relationship from
-// the database. It returns nothing but gives back status code 204, which means
-// the operation silently succeeded.
-service.delete("", (req, resp, next) => {
-  
-  resp.status(204).json({
-    ok: true,
+
+
+// For this I could update my existing Pet
+// Database table
+// this is what the query would look like:
+// INSERT INTO Customers (CustomerName, ContactName, Address, City, PostalCode, Country)
+// VALUES ('Cardinal','Tom B. Erichsen','Skagen 21','Stavanger','4006','Norway');
+// Do this with Pets
+service.patch("/Pet/:saleVal", (req, res) => {
+  const query = 'UPDATE Pets SET adoption_fee = (adoption_fee - saleVal) WHERE species = "Dog"'
+  const parameters = [
+    parseInt(req.params.saleVal),
+  ];
+  connection.query(query, parameters, (error, rows) =>
+  {
+    if (error) {
+      response.status(500);
+      response.json({
+        ok: false,
+        results: error.message,
+      });
+    } else {
+      response.status(204).json({
+        ok: true,
+        results: JSON.parse(rows),
+      });
+    }
+
   });
 });
 
 
-// DELETE /humans/:id that hard-deletes the human from the database, including
-// any following relationships the human is involved in.
-service.delete("", (req, resp) => {
-  
-  resp.status(204).json({
-    ok: true,
+
+// DELETE /Pet/:id that soft-deletes the Pet from the database
+
+service.delete("/Pet/:id", (req, response) => {
+  const query = 'UPDATE Pets SET isAvailable = 0 WHERE PetID = ?'
+  const parameters = [
+    parseInt(req.params.id),
+  ];
+  connection.query(query, parameters, (error, rows) =>
+  {
+    if (error) {
+      response.status(500);
+      response.json({
+        ok: false,
+        results: error.message,
+      });
+    } else {
+      response.status(204).json({
+        ok: true,
+        results: rows,
+      });
+    }
   });
 });
+
+connection.end();
 
 // for each database entry, this represents a 
 // a safe transition
